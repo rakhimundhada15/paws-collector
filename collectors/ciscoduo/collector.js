@@ -126,8 +126,14 @@ class CiscoduoCollector extends PawsCollector {
                 return [[], state, state.poll_interval_sec];
             }
             else {
-                // set errorCode if not available in error object to showcase client error on DDMetrics
-                error.errorCode = error.code;
+                // set errorCode only for object errors to avoid type errors with string/primitive throws
+                if (error && (typeof error === 'object' || typeof error === 'function')) {
+                    if (error.errorCode === undefined) {
+                        error.errorCode = error.code || error.status;
+                    }
+
+                }
+
                 throw error;
             }
         }
