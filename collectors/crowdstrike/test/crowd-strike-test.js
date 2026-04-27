@@ -12,8 +12,6 @@ var responseStub = {};
 let authenticate;
 let getList;
 let getAPIDetails;
-let getIncidents;
-let getDetections;
 let getAlerts;
 
 function setAlServiceStub() {
@@ -30,18 +28,6 @@ function setAlServiceStub() {
                 return resolve({ accumulator: crowdstrikeMock.LIST.resources, total: 1 });
             });
         });
-    getIncidents = sinon.stub(utils, 'getIncidents').callsFake(
-        function fakeFn(ids, apiEndpoint, token) {
-            return new Promise(function (resolve, reject) {
-                return resolve({ resources: crowdstrikeMock.INCIDENT_LOG_EVENT.resources});
-            });
-        });
-    getDetections = sinon.stub(utils, 'getDetections').callsFake(
-        function fakeFn(ids, apiEndpoint, token) {
-            return new Promise(function (resolve, reject) {
-                return resolve({ resources: crowdstrikeMock.DETECTION_LOG_EVENT.resources});
-            });
-        });
     getAlerts = sinon.stub(utils, 'getAlerts').callsFake(
         function fakeFn(ids, apiEndpoint, token) {
             return new Promise(function (resolve, reject) {
@@ -54,7 +40,7 @@ function setAlServiceStub() {
                 url: "url",
                 method: "GET",
                 requestBody: "sortFieldName",
-                typeIdPaths: [{ path: ["detection_id"] }],
+                typeIdPaths: [{ path: ["composite_id"] }],
                 tsPaths: [{ path: ["created_timestamp"] }]
             };
         });
@@ -64,8 +50,6 @@ function setAlServiceStub() {
 function restoreAlServiceStub() {
     if (authenticate && typeof authenticate.restore === 'function') authenticate.restore();
     if (getList && typeof getList.restore === 'function') getList.restore();
-    if (getDetections && typeof getDetections.restore === 'function') getDetections.restore();
-    if (getIncidents && typeof getIncidents.restore === 'function') getIncidents.restore();
     if (getAPIDetails && typeof getAPIDetails.restore === 'function') getAPIDetails.restore();
     if (getAlerts && typeof getAlerts.restore === 'function') getAlerts.restore();
 }
@@ -136,7 +120,7 @@ describe('Unit Tests', function () {
             const sampleEvent = { ResourceProperties: { StackName: 'a-stack-name' } };
             const regValues = collector.pawsGetRegisterParameters(sampleEvent);
             const expectedRegValues = {
-                crowdstrikeAPINames: '["Incident", "Detection", "Alerts"]'
+                crowdstrikeAPINames: '["Alerts"]'
             };
             assert.deepEqual(regValues, expectedRegValues);
         });
@@ -151,25 +135,6 @@ describe('Unit Tests', function () {
             succeed: function () { }
         };
         it('Paws Get Logs Success', async function () {
-            setAlServiceStub();
-            const creds = await CrowdstrikeCollector.load();
-            var collector = new CrowdstrikeCollector(ctx, creds, 'crowdstrike');
-            const startDate = moment().subtract(3, 'days');
-            const curState = {
-                stream: "Detection",
-                since: startDate.toISOString(),
-                until: startDate.add(2, 'days').toISOString(),
-                offset: 0,
-                poll_interval_sec: 1
-            };
-
-            const [logs, newState] = await collector.pawsGetLogs(curState);
-            assert.equal(logs.length, 1);
-            assert.equal(newState.poll_interval_sec, 1);
-            assert.ok(logs[0].detection_id);
-        });
-
-        it('Get Alerts Logs Success', async function () {
             setAlServiceStub();
             const creds = await CrowdstrikeCollector.load();
             var collector = new CrowdstrikeCollector(ctx, creds, 'crowdstrike');
@@ -202,7 +167,7 @@ describe('Unit Tests', function () {
 
             const creds = await CrowdstrikeCollector.load();
             var collector = new CrowdstrikeCollector(ctx, creds, 'crowdstrike');
-            let fmt = collector.pawsFormatLog(crowdstrikeMock.DETECTION_LOG_EVENT.resources[0]);
+            let fmt = collector.pawsFormatLog(crowdstrikeMock.ALERTS_LOG_EVENT.resources[0]);
             assert.equal(fmt.progName, 'CrowdstrikeCollector');
             assert.ok(fmt.messageType);
         });
@@ -221,7 +186,7 @@ describe('Unit Tests', function () {
 
             const startDate = moment().subtract(5, 'minutes');
             const curState = {
-                stream: "Detection",
+                stream: "Alerts",
                 since: startDate.toISOString(),
                 until: startDate.add(5, 'minutes').toISOString(),
                 offset: 0,
@@ -271,7 +236,7 @@ describe('Unit Tests', function () {
                         url: "url",
                         method: "GET",
                         requestBody: "sortFieldName",
-                        typeIdPaths: [{ path: ["detection_id"] }],
+                        typeIdPaths: [{ path: ["composite_id"] }],
                         tsPaths: [{ path: ["created_timestamp"] }]
                     };
                 });
@@ -287,7 +252,7 @@ describe('Unit Tests', function () {
             var collector = new CrowdstrikeCollector(ctx, creds, 'crowdstrike');
             const startDate = moment().subtract(3, 'days');
             const curState = {
-                stream: "Detection",
+                stream: "Alerts",
                 since: startDate.toISOString(),
                 until: startDate.add(2, 'days').toISOString(),
                 offset: 0,
@@ -334,7 +299,7 @@ describe('Unit Tests', function () {
             var collector = new CrowdstrikeCollector(ctx, creds, 'crowdstrike');
             const startDate = moment().subtract(3, 'days');
             const curState = {
-                stream: "Detection",
+                stream: "Alerts",
                 since: startDate.toISOString(),
                 until: startDate.add(2, 'days').toISOString(),
                 offset: 0,
